@@ -1,6 +1,7 @@
 #create map
-map_size = 10 # x*x
-world = Array.new(10){Array.new(10," ")}
+
+map_size = 5 # x*x
+world = Array.new(map_size){Array.new(map_size," ")}
 #inputKeys
 keys={
     "w"=>:up,
@@ -24,23 +25,42 @@ end
 entities ={
     "Player"=>{
         "Texture"=>"P",
-        "x"=>5,
-        "y"=>5,
-        "hp"=>10
-    },
-    "Monster"=>{
-        "Texture"=>"M",
-        "x"=>3,
-        "y"=>2,
-        "points"=>2
+        "x"=>0,
+        "y"=>0,
+        "max_hp"=>10,
+        "hp"=>10,
+        "Points"=>0
     }
 }
+Random.new_seed
+def Add_monster(entities,map_size)
+  x=rand(map_size)
+  y=rand(map_size)
+
+ while x == entities["Player"]["x"] do
+    x=rand(map_size)
+ end
+  while y== entities["Player"]["y"] do
+    y=rand(map_size)
+  end
+ entities["Monster"]= {
+     "Texture"=>"M",
+     "x"=>x,
+     "y"=>y,
+     "Points"=>2
+ }
+
+end
+
 
 def Draw_hp(hp) #draw hp of entity
   hp.times do
     print "▌ "
   end
   puts
+end
+def Write_hp(hp)
+  puts "HP: "+hp.to_s
 end
 
 def onCollision(obj1,obj2)#check collision
@@ -50,9 +70,6 @@ def onCollision(obj1,obj2)#check collision
     return false
   end
 end
-
-#player points
-points=0
 
 #screen render
 def Put_entities(world,entities) #add entities to world
@@ -74,9 +91,9 @@ def Restore_world(world,entities)#restore world to initial
   end
 end
 
-def Render(world,entities,points,keys) #render screen
-  system "clear"
-  puts "punkty: " + points.to_s
+def Render(world,entities,keys) #render screen
+
+  puts "punkty: " + entities["Player"]["Points"].to_s
   Put_entities(world,entities)
   Render_world(world)
   Restore_world(world,entities)
@@ -85,36 +102,43 @@ def Render(world,entities,points,keys) #render screen
 end
 
 
-
+Add_monster(entities,map_size) #add first monster
 while(true)#execute endlessly unless player dont quit
-  Render(world,entities,points,keys)
-  action = gets.chomp#czekaj na znak
+  Render(world,entities,keys)
+  action = gets.chomp#wait for char
   case keys[action.downcase]
     when :up
-      entities["Player"]["y"] -= 1
+      entities["Player"]["y"] -= entities["Player"]["y"] == 0 ? 0 : 1
     when :down
-      entities["Player"]["y"] += 1
+      entities["Player"]["y"] += entities["Player"]["y"] == map_size-1 ? 0 : 1
     when :left
-      entities["Player"]["x"] -= 1
+      entities["Player"]["x"] -= entities["Player"]["x"] == 0 ? 0 : 1
     when :right
-      entities["Player"]["x"] += 1
+      entities["Player"]["x"] += entities["Player"]["x"] == map_size-1 ? 0 : 1
     when :rest
-      entities["Player"]["hp"] +=entities["Player"]["hp"] <10 ? 1 : 0
+      entities["Player"]["hp"] +=entities["Player"]["hp"] <entities["Player"]["max_hp"] ? 1 : 0
     when :quit
+      puts "You ended game"
       break
     else
-      puts " nie ma takiego klawisza!"
+      puts " There is no such key!"
   end
-  entities.each do |_,entity|#sprawdzaj kolizje
-
-       if entities["Player"]!=entity and onCollision(entities["Player"],entity)#w wypadku zderzenia sie
-
-          points+=entity["points"]
-
-           entities.delete(_)#usun dany obiekt
+  entities.each do |type,entity|#loop for checking collisions
+       if entities["Player"]!=entity and onCollision(entities["Player"],entity)#if player is on another object
+         entities["Player"]["Points"]+=entity["Points"]
+          if(type=="Monster")
+            entities["Player"]["hp"]-=1
+          end
+           entities.delete(type)#delete this entity
         end
-
-       end
+  end
+  if  entities["Player"]["hp"] <=0
+    puts "GAME OVER"
+    break
+  end
+  if !entities.key?("Monster")
+    Add_monster(entities,map_size)
+  end
 end
 
 
